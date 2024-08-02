@@ -13,7 +13,6 @@ namespace GimmeMinerBack
         public const string pluginVersion = "1.0.0";
 
         private static ConfigEntry<int> perkId;
-        private static bool ran = false;
 
         public void Awake()
         {
@@ -33,14 +32,12 @@ namespace GimmeMinerBack
         [HarmonyPrefix]
         private static void PerksPanel_ShowCharPerks_Pre()
         {
-            if (ran || PChar.Char.perks == null || PChar.HasPerk(perkId.Value))
+            if (PChar.Char.perks == null || PChar.HasPerk(perkId.Value))
             {
                 return;
             }
 
             PerkDB.AcquirePerk(perkId.Value);
-
-            ran = true;
         }
     }
 }
