@@ -3,7 +3,7 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 
-namespace GimmeMinerBack
+namespace ChangeBackgroundPerk
 {
     [BepInPlugin(pluginGuid, pluginName, pluginVersion)]
     public class ChangeBackgroundPerk : BaseUnityPlugin
