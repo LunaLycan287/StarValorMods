@@ -8,8 +8,8 @@ namespace GimmeMinerBack
     [BepInPlugin(pluginGuid, pluginName, pluginVersion)]
     public class ChangeBackgroundPerk : BaseUnityPlugin
     {
-        public const string pluginGuid = "com.github.lunalycan287.starvalormods.changebgperk";
-        public const string pluginName = "Gimme Miner Back";
+        public const string pluginGuid = "lunalycan287.starvalormods.changebgperk";
+        public const string pluginName = "Change Background Perk";
         public const string pluginVersion = "1.0.0";
 
         private static ConfigEntry<int> perkId;
@@ -33,7 +33,7 @@ namespace GimmeMinerBack
         [HarmonyPrefix]
         private static void PerksPanel_ShowCharPerks_Pre()
         {
-            if (ran || PChar.Char.perks == null || !PChar.HasPerk(perkId.Value))
+            if (ran || PChar.Char.perks == null || PChar.HasPerk(perkId.Value))
             {
                 return;
             }
