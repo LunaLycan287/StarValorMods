@@ -5,6 +5,7 @@ All my Star Valor mods require [BepInEx 5.4+](https://github.com/BepInEx/BepInEx
 ## Change Background Perk
 Change your current background Perk to another one.
 
+### Install
 - Copy `LL_SV_ChangeBackgroundPerk.dll` into `Star Valor\BepInEx\Plugins`
 - Start the Game
 - Set your perk in `Star Valor\BepInEx\config\lunalycan287.starvalormods.changebgperk`
