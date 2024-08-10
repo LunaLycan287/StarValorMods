@@ -53,6 +53,9 @@
     <Compile Include="ChangeBackgroundPerk.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="CHANGELOG.md" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetPath)" "D:\SteamLibrary\steamapps\common\Star Valor\BepInEx\plugins\$(TargetFileName)" /Y</PostBuildEvent>
