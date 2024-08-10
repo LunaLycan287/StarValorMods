@@ -26,7 +26,7 @@ Adjust how many skill points you get during a normal game.
 - Set the value of `uninstall = true` in  `Star Valor\BepInEx\config\lunalycan287.starvalormods.changebgperk` 
 - Start the Game
 - Load your save
-- Open the Character screen with `C` and the Skill Points will be adjusted.
+- Open the Character screen with `C` 
 - Click on `Reset Skills`
 - Save & quit your game
 - Remove the mod

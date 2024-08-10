@@ -2,6 +2,8 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using System;
+using System.Linq;
 
 namespace LL_SV_MoreSkillPoints
 {
@@ -10,9 +12,9 @@ namespace LL_SV_MoreSkillPoints
     {
         public const string pluginGuid = "lunalycan287.starvalormods.moreskillpoints";
         public const string pluginName = "More Skill Points";
-        public const string pluginVersion = "1.0.0";
+        public const string pluginVersion = "1.1.0";
 
-        static ManualLogSource logSource = new ManualLogSource("MoreSkillPoints");
+        static ManualLogSource logSource = new ManualLogSource("(LL) MoreSkillPoints");
 
         private static ConfigEntry<int> maxSkillPoints;
         private static ConfigEntry<bool> ignoreResetPoints;
@@ -23,6 +25,8 @@ namespace LL_SV_MoreSkillPoints
             Harmony.CreateAndPatchAll(typeof(MoreSkillPoints));
             LoadConfig();
             BepInEx.Logging.Logger.Sources.Add(logSource);
+            logSource.LogInfo("Loaded " + pluginName + " v" + pluginVersion);
+            logSource.LogDebug("MaxSP: " + maxSkillPoints.Value + " IgnoreReset: " + ignoreResetPoints.Value + " Uninstall: " + uninstall.Value);
         }
 
         private void LoadConfig()
@@ -40,13 +44,14 @@ namespace LL_SV_MoreSkillPoints
             SetSkillPoints();
         }
 
-        [HarmonyPatch(typeof(PlayerCharacter), "ResetSkills")]
+        [HarmonyPatch(typeof(CharacterScreen), "ResetSkills")]
         [HarmonyPrefix]
-        private static void PlayerCharacter_ResetSkills_Pre(PlayerCharacter __instance)
+        private static void CharacterScreen_ResetSkills_Pre()
         {
             if (ignoreResetPoints.Value || uninstall.Value)
             {
-                __instance.resetSkillsPoints++;
+                PChar.Char.resetSkillsPoints++;
+                logSource.LogDebug("Increased reset points.");
             }
         }
         
@@ -76,7 +81,8 @@ namespace LL_SV_MoreSkillPoints
             float maxSP = (float)maxSkillPoints.Value / PChar.maxLevel;
             float curSkillPoints = maxSP * (float)player.level;
             int usedSP = 0;
-            for (int i = 0; i < 5; i++)
+            int maxSkillTree = Enum.GetValues(typeof(SkillTree)).Cast<int>().Max();
+            for (int i = 0; i <= maxSkillTree; i++)
             {
                 usedSP += player.GetSkillTreeLevel(i);
             }
