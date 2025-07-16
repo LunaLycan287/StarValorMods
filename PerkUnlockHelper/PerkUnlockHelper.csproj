@@ -64,9 +64,11 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Knowledge.cs" />
         <Compile Include="Perks.dump.cs" />
         <Compile Include="PerkUnlockHelper.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
+        <Compile Include="Quests.dump.cs" />
     </ItemGroup>
     <ItemGroup>
       <None Include="CHANGELOG.md" />
