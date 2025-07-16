@@ -24,6 +24,7 @@ Dump the Database files into working CSharp files for use in any mod projects.
 ### Configuration
 - Edit `Star Valor\BepInEx\config\lunalycan287.starvalormods.dumper.cfg`
 - Set the `KeyBind` to your preferred key. Only lower case allowed! Check [possible KeyCodes](https://docs.unity3d.com/6000.1/Documentation/ScriptReference/KeyCode.html).
+- Set `Compact` to true, if you do not want an extra line between the enum values.
 
 ## More Skill Points
 Adjust how many skill points you get during a normal game.
