@@ -16,13 +16,14 @@ namespace LL_SV_Dumper {
     public class Dumper : BaseUnityPlugin {
         private const string PluginGuid = "lunalycan287.starvalormods.dumper";
         private const string PluginName = "Dumper";
-        private const string PluginVersion = "1.0.0";
+        private const string PluginVersion = "1.1.0";
 
         private const string DumpFolder = "dump";
 
         private static readonly ManualLogSource LOGSource = new ManualLogSource("(LL) " + PluginName.Replace(" ",""));
         
         private static ConfigEntry<string> _keybind;
+        private static ConfigEntry<bool> _compact;
         
         public void Awake() {
             Harmony.CreateAndPatchAll(typeof(Dumper));
@@ -34,6 +35,7 @@ namespace LL_SV_Dumper {
         private void LoadConfig()
         {
             _keybind = Config.Bind<string>("General Settings", "KeyBind", "f10", "The Key Code to use. (Default: f8) See https://docs.unity3d.com/6000.1/Documentation/ScriptReference/KeyCode.html for possible values. NOTE: names must be all lowercase!");
+            _compact = Config.Bind<bool>("General Settings", "Compact", false, "If spacing between enum values should be reduced.");
         }
 
         public void Update() {
@@ -47,11 +49,12 @@ namespace LL_SV_Dumper {
             DumpEquipment();
             DumpFactions();
             DumpItems();
-            DumpPerks();
+            Dictionary<int, Perk> perksList = DumpPerks();
             DumpShips();
             DumpSkills();
             DumpBaseBuilding();
             DumpWeapons();
+            DumpQuests(perksList);
         }
 
         private static string SanitizeName(string name) {
@@ -59,10 +62,14 @@ namespace LL_SV_Dumper {
             cleanName = cleanName.Replace("(Clone)", "").Replace("-", "_").Replace(":", "").Replace("+","_plus");
             // Crew specific
             cleanName = cleanName.Replace(",", "");
+            // Quest specific
+            cleanName = cleanName.Replace("!", "").Replace("/","of");
 
-            if (cleanName.Length == 0) {
+            if (cleanName.Length == 0 || cleanName == "???") {
                 cleanName = "Unknown";
             }
+
+            cleanName = cleanName.Replace("__", "_");
             
             if (char.IsDigit(cleanName[0])) {
                 cleanName = "_"+cleanName;
@@ -100,9 +107,12 @@ namespace LL_SV_Dumper {
 
             sb.Append("        ").Append(sanitizedName);
             if (containsDuplicates) {
-                sb.Append("_").Append(id);
+                sb.Append("_ID").Append(id);
             }
             sb.Append(" = ").Append(id).AppendLine(",");
+            if (!_compact.Value) {
+                sb.AppendLine();
+            }
         }
         
         private static void DumpEnd(string enumName, StringBuilder sb) {
@@ -163,7 +173,7 @@ namespace LL_SV_Dumper {
                             sanitizedName += "_CoT";
                             break;
                     }
-                    DumpSanitizedEntry(sb, equipment.name, sanitizedName, equipment.id, type.ToString());
+                    DumpSanitizedEntry(sb, equipment.equipName, sanitizedName, equipment.id, type.ToString());
                 }
                 sb.AppendLine();
             }
@@ -197,14 +207,17 @@ namespace LL_SV_Dumper {
             DumpEnd(enumName, sb);
         }
 
-        private static void DumpPerks() {
+        private static Dictionary<int, Perk> DumpPerks() {
             const string enumName = "Perks";
             LOGSource.LogInfo("Started " + enumName + " Dump");
+            Dictionary<int, Perk> perksReturn = new Dictionary<int, Perk>();
             
             Dictionary<PerkType, List<Perk>> perkSorted = new Dictionary<PerkType, List<Perk>>();
             List<Perk> perkList = PerkDB.GetAllPerks();
             List<PerkType> perkTypes = new List<PerkType>();
             foreach (Perk perk in perkList) {
+                perksReturn.Add(perk.id, perk);
+                
                 if (perkSorted.ContainsKey(perk.type)) {
                     perkSorted[perk.type].Add(perk);
                 }
@@ -224,6 +237,7 @@ namespace LL_SV_Dumper {
                 sb.AppendLine();
             }
             DumpEnd(enumName, sb);
+            return perksReturn;
         }
 
         private static void DumpShips() {
@@ -260,7 +274,7 @@ namespace LL_SV_Dumper {
             }
              
             LOGSource.LogInfo("Started " + enumName + " Dump");
-            
+
             List<BuildingPlan> planList = AccessTools.StaticFieldRefAccess<List<BuildingPlan>>(typeof(BaseBuildingDB), "plans");
             //List<BuildingPlan> planList = TODO: Fix plans to load when game not loaded
             planList.Sort((item, item1) => item.id < item1.id ? -1 : 1);
@@ -268,7 +282,7 @@ namespace LL_SV_Dumper {
             StringBuilder sb  = DumpStart(enumName);
             foreach (BuildingPlan plan in planList) {
                 if (!string.IsNullOrEmpty(plan.Description)) {
-                    sb.Append("       //").AppendLine(plan.Description);
+                    sb.Append("        //").AppendLine(plan.Description);
                 }
                 
                 DumpSanitizedEntry(sb, plan.Name, SanitizeName(plan.Name), plan.id, null, true);
@@ -280,8 +294,8 @@ namespace LL_SV_Dumper {
             const string enumName = "Weapons";
             LOGSource.LogInfo("Started " + enumName + " Dump");
             
-            Dictionary<int, TWeapon> weaponReduced = new Dictionary<int, TWeapon>();
             List<TWeapon> weaponList = new List<TWeapon>(GameManager.predefinitions.weapons);
+            Dictionary<int, TWeapon> weaponReduced = new Dictionary<int, TWeapon>();
             foreach (TWeapon weapon in weaponList.Where(weapon => !weaponReduced.ContainsKey(weapon.index))) {
                 weaponReduced[weapon.index] = weapon;
             }
@@ -291,6 +305,29 @@ namespace LL_SV_Dumper {
             sb.AppendLine();
             foreach (TWeapon weapon in weaponReduced.Select(weaponPair => weaponPair.Value)) {
                 DumpDefaultEntry(sb, weapon.name, weapon.index);
+            }
+            DumpEnd(enumName, sb);
+        }
+
+        private static void DumpQuests(Dictionary<int, Perk> perksList) {
+            const string enumName = "Quests";
+            LOGSource.LogInfo("Started " + enumName + " Dump");
+            
+            List<Quest> questList = AccessTools.StaticFieldRefAccess<List<Quest>>(typeof(QuestDB), "questReference");
+            
+            Dictionary<int, Quest> questReduced = new Dictionary<int, Quest>();
+            foreach (Quest quest in questList.Where(quest => !questReduced.ContainsKey(quest.refCode))) {
+                questReduced[quest.refCode] = quest;
+            }
+            
+            StringBuilder sb = DumpStart(enumName);
+            foreach (Quest quest in questReduced.Select(questPair => questPair.Value)) {
+                if (quest.acquirePerkID != 0) {
+                    sb.Append("        //Aquire Perk: ").Append(perksList[quest.acquirePerkID].Name()).Append(" (").Append(quest.acquirePerkID.ToString()).AppendLine(")");
+                }
+
+                //Quests do have an id but are gotten by refCode instead. Id is mainly used to increment repeating quests.
+                DumpSanitizedEntry(sb, quest.nameRef, SanitizeName(quest.nameRef), quest.refCode, null, true);
             }
             DumpEnd(enumName, sb);
         }

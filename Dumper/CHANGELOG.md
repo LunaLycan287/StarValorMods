@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [1.1.0] - 2025-07-16
+
+### Added 
+
+- QuestDB Dump
+- Predefined CrewMate Dump
+- Predefined Weapons Dump
+- Added option to have more / less spacing between dumped enum values.
+
+### Changed
+
+- Code cleanup (lots of de-duplication)
+
 ## [1.0.0] - 2025-07-16
 
 - initial release
@@ -14,4 +27,5 @@ and this project adheres to [Semantic Versioning].
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
 <!-- Versions -->
+[1.0.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/Dumper_v1.1.0
 [1.0.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/Dumper_v1.0.0
