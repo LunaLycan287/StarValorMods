@@ -43,3 +43,20 @@ Adjust how many skill points you get during a normal game.
 - Click on `Reset Skills`
 - Save & quit your game
 - Remove the mod
+
+## Perk Unlock Helper
+Displays helpful unlock information on Perks that are still locked.  
+Perks that can not be unlocked in the current run are Red.  
+Perks that can be unlocked but either require an Equipment change or are about to be locked are Yellow.  
+
+### Install
+- Copy `LL_SV_PerkUnlockHelper.dll` into `Star Valor\BepInEx\Plugins`
+- Start the Game
+- Load your save
+- Press the configured key (Default: F8)
+
+### Configuration
+- Edit `Star Valor\BepInEx\config\lunalycan287.starvalormods.perkunlockhelper.cfg`
+- Set the `KeyBind` to your preferred key. Only lower case allowed! Check [possible KeyCodes](https://docs.unity3d.com/6000.1/Documentation/ScriptReference/KeyCode.html).
+- Set `ShowImages` to `true` if you want to see the skill icons even before unlocking.
+- Set `ShowHiddenUnlockConditions` to `true` if you want to see ALL unlock conditions, even of the perks which hide them by default.
