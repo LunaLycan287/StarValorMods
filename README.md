@@ -12,6 +12,19 @@ Change your current background Perk to another one.
 - Load your save
 - Open the Perk screen with `P` and the Perk will be added
 
+## Dumper
+Dump the Database files into working CSharp files for use in any mod projects.
+
+### Install
+- Copy `LL_SV_Dumper` into `Star Valor\BepInEx\Plugins`
+- Start the Game
+- Press the configured key (Default: F10)
+- Copy the required dump files from `Star Valor\dump` into your project.
+
+### Configuration
+- Edit `Star Valor\BepInEx\config\lunalycan287.starvalormods.dumper.cfg`
+- Set the `KeyBind` to your preferred key. Only lower case allowed! Check [possible KeyCodes](https://docs.unity3d.com/6000.1/Documentation/ScriptReference/KeyCode.html).
+
 ## More Skill Points
 Adjust how many skill points you get during a normal game.
 
