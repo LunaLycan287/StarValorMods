@@ -2,6 +2,25 @@
 
 All my Star Valor mods require [BepInEx 5.4+](https://github.com/BepInEx/BepInEx/releases).
 
+## Mod Any Item
+Mod attributes of any Item.
+Check out it's own [Readme](ModAnyItem/Readme.md) for item information.
+
+### Install
+Note: it is suggested to back up your save file first if you want to try things.
+- Copy `LL_SV_ModAnyItem.dll` into `Star Valor\BepInEx\Plugins`
+- Start the Game
+- Wait for it to load
+- Close the Game
+- Edit any items you want to change in `Star Valor\BepInEx\plugins\ItemMods`
+- Save your edits
+- Start the Game
+
+### Uninstall
+I have no idea about the safety of uninstalling after using changed items in a Save.  
+I imagine stashed items need to be retrieved and you might need to store everything in the station so you do not go over capacity.  
+<span style="color:red">Save file might be corrupted.</span>
+
 ## Change Background Perk
 Change your current background Perk to another one.
 
