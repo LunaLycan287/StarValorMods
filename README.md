@@ -8,7 +8,7 @@ Check out it's own [Readme](ModAnyItem/Readme.md) for item information.
 
 ### Install
 Note: it is suggested to back up your save file first if you want to try things.
-- Copy `LL_SV_ModAnyItem.dll` into `Star Valor\BepInEx\Plugins`
+- Copy `LL_SV_ModAnyItem.dll` into `Star Valor\BepInEx\plugins`
 - Start the Game
 - Wait for it to load
 - Close the Game

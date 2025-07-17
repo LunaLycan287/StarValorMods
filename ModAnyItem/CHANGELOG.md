@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [1.1.0] - 2025-07-17
+
+### Changed
+
+- CanUpgradeToRarity now using int instead of enum string.
+
 ## [1.0.0] - 2025-07-17
 
 - initial release
@@ -14,4 +20,5 @@ and this project adheres to [Semantic Versioning].
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
 <!-- Versions -->
+[1.1.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/ModAnyItem_v1.1.0
 [1.0.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/ModAnyItem_v1.0.0
