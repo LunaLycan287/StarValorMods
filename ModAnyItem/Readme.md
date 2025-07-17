@@ -18,7 +18,7 @@ Not Yet Implemented!
   - 3 = Rare 
   - 4 = Epic 
   - 5 = Legendary
-- `CanUpgradeToRarity` = To which Rarity the item can be upgraded.
+- `CanUpgradeToRarity` = To which Rarity the item can upgrade other items.
   - 0 = Poor = Can not be Upgraded
   - 1 = Common
   - 2 = Uncommon
