@@ -20,7 +20,7 @@ namespace LL_SV_ModAnyItem {
         [XmlComment("Possible Rarities: 0 = Poor | 1 = Common | 2 = Uncommon | 3 = Rare | 4 = Epic | 5 = Legendary")]
         public int Rarity { get; set; }
         [XmlComment("Possible Rarities: 1 = Common | 2 = Uncommon | 3 = Rare | 4 = Epic | 5 = Legendary")]
-        public ItemRarity CanUpgradeToRarity { get; set; }
+        public int CanUpgradeToRarity { get; set; }
         
         public int LevelPlus { get; set; } // TODO: figure out what this exactly is for
         public float Weight { get; set; }
@@ -74,7 +74,7 @@ namespace LL_SV_ModAnyItem {
             item.description = Description;
 
             item.rarity = Rarity;
-            item.canUpgradeToTier = CanUpgradeToRarity;
+            item.canUpgradeToTier = (ItemRarity)CanUpgradeToRarity;
 
             item.levelPlus = LevelPlus;
             item.weight = Weight;
@@ -115,7 +115,7 @@ namespace LL_SV_ModAnyItem {
                 Description = item.description,
                 
                 Rarity = item.rarity,
-                CanUpgradeToRarity = item.canUpgradeToTier,
+                CanUpgradeToRarity = (int) item.canUpgradeToTier,
                 
                 LevelPlus = item.levelPlus,
                 Weight = item.weight,

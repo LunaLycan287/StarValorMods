@@ -11,7 +11,7 @@ namespace LL_SV_ModAnyItem {
     public class ModAnyItem : BaseUnityPlugin {
         private const string PluginGuid = "lunalycan287.starvalormods.modanyitem";
         private const string PluginName = "Mod Any Item";
-        private const string PluginVersion = "1.0.0";
+        private const string PluginVersion = "1.1.0";
         internal static readonly ManualLogSource LOGSource = new ManualLogSource("(LL) " + PluginName.Replace(" ",""));
         
         private const string ModFilesDir = "ItemMods";
