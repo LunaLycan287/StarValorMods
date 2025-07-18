@@ -80,3 +80,4 @@ Perks that can be unlocked but either require an Equipment change or are about t
 - Set the `KeyBind` to your preferred key. Only lower case allowed! Check [possible KeyCodes](https://docs.unity3d.com/6000.1/Documentation/ScriptReference/KeyCode.html).
 - Set `ShowImages` to `true` if you want to see the skill icons even before unlocking.
 - Set `ShowHiddenUnlockConditions` to `true` if you want to see ALL unlock conditions, even of the perks which hide them by default.
+- Set `ShowPreviouslyUnlocked` to `true` if you want to see perks that have been perviously unlockde but not acquired in the current save.

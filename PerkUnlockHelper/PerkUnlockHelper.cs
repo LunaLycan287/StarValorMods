@@ -19,7 +19,7 @@ namespace LL_SV_PerkUnlockHelper {
     public class PerkUnlockHelper : BaseUnityPlugin {
         private const string PluginGuid = "lunalycan287.starvalormods.perkunlockhelper";
         private const string PluginName = "Perk Unlock Helper";
-        private const string PluginVersion = "1.0.0";
+        private const string PluginVersion = "1.2.0";
 
         private static readonly ManualLogSource LOGSource = new ManualLogSource("(LL) " + PluginName.Replace(" ",""));
 
@@ -29,6 +29,7 @@ namespace LL_SV_PerkUnlockHelper {
         private static ConfigEntry<string> _keybind;
         private static ConfigEntry<bool> _showImages;
         private static ConfigEntry<bool> _showHiddenUnlockConditions;
+        private static ConfigEntry<bool> _showPreviouslyUnlocked;
         
         public void Awake() {
             Harmony.CreateAndPatchAll(typeof(PerkUnlockHelper));
@@ -42,6 +43,7 @@ namespace LL_SV_PerkUnlockHelper {
             _keybind = Config.Bind<string>("General Settings", "KeyBind", "f8", "The Key Code to use. (Default: f8) See https://docs.unity3d.com/6000.1/Documentation/ScriptReference/KeyCode.html for possible values. NOTE: names must be all lowercase!");
             _showImages = Config.Bind<bool>("General Settings", "ShowImages", true, "If the image of the Perk should be shown instead of the placeholder.");
             _showHiddenUnlockConditions = Config.Bind<bool>("General Settings", "ShowHiddenUnlockConditions", false, "If the hidden unlock conditions should be shown.");
+            _showPreviouslyUnlocked = Config.Bind<bool>("General Settings", "ShowPreviouslyUnlocked", true, "Show perks that have been perviously unlocked, but not yet acquired this run.");
         }
 
         private static void FillPerksHelperPanel(PerksPanel __instance) {
@@ -53,39 +55,45 @@ namespace LL_SV_PerkUnlockHelper {
             int i = 0;
             for (int j = 0; j < totalPerks; j++) {
                 Perk byIndex = PerkDB.GetByIndex(j);
-                if (!byIndex.locked || (byIndex.statMode == 2 && GameData.data.difficulty == 2) || (GameData.data.difficulty == -1 && !byIndex.unlockOnRelaxedMode) || byIndex.id == 323) {
+               
+                // Already acquired in this save.
+                // Do not display Experience type perks, since they are not acquire-able
+                // Do not display special early support perk which can not be acquired anymore
+                // Do not display unlocked perks if PerviouslyUnlocked setting is false.
+                // Do not display perks which are not unlockable in relaxed mode if they have not previously been unlocked
+                if (PChar.HasPerk(byIndex.id) || byIndex.type == PerkType.Experience || byIndex.id == (int)Perks.Early_Supporter || 
+                    (!_showPreviouslyUnlocked.Value && !byIndex.locked) ||
+                    (GameData.data.difficulty == -1 && !byIndex.unlockOnRelaxedMode && byIndex.locked) ) {
                     continue;
                 }
-
+                
                 if (_showHiddenUnlockConditions.Value && byIndex.showLevel < 2) {
                     byIndex.showLevel = 2;
                 }
                 
-                if (i >= panel.childCount)
-                {
-                    Instantiate<GameObject>( __instance.perkGO, panel);
+                if (i >= panel.childCount) {
+                    Instantiate(__instance.perkGO, panel);
                 }
 
                 PerkControl perkControl = panel.GetChild(i).GetComponent<PerkControl>();
                 perkControl.Setup(byIndex, __instance, null, false, null);
                 
+                perkControl.bgColor = GetPerkColor(byIndex);
+                perkControl.transform.Find("BG").GetComponent<Image>().color = perkControl.bgColor;
+                
 
-                Color? bgColor = GetPerkColor(byIndex);
-                if (bgColor != null) {
-                    perkControl.bgColor = (Color)bgColor;
-                    perkControl.transform.Find("BG").GetComponent<Image>().color = perkControl.bgColor;
-                }
-
-                if (_showImages.Value) {
-                    perkControl.transform.Find("Image").GetComponent<Image>().sprite = byIndex.image;
+                if (_showImages.Value && byIndex.locked) {
+                    Image img = perkControl.transform.Find("Image").GetComponent<Image>();
+                    img.sprite = byIndex.image;
+                    //img.color = new Color32(47,79,79, 255);
+                    img.color = new Color32(255, 255, 255, 50);
                 }
 
                 panel.GetChild(i).gameObject.SetActive(true);
                 i++;
             }
             //__instance.AdjustPanelSize(i);
-            while (i < panel.childCount)
-            {
+            while (i < panel.childCount) {
                 panel.GetChild(i).gameObject.SetActive(false);
                 i++;
             }
@@ -97,11 +105,17 @@ namespace LL_SV_PerkUnlockHelper {
             return QuestDB.IsQuestCompleted(QuestDB.GetQuestRef((int)quest), pc.transform);
         }
 
-        private static Color? GetPerkColor(Perk perk) {
-            Color? bgColor = null;
+        private static Color GetPerkColor(Perk perk) {
+            Color bgColor = Color.gray;
+            
             PlayerControl pc = PlayerControl.inst;
             BaseCharacter character = GameData.data.character;
             switch ((Perks)perk.id) {
+                case Perks.Outis: 
+                    if (!HasPerk(Perks.Outis)) { // You can not reaquire the perk (by normal means).
+                        bgColor = Color.red;
+                    }
+                    break;
                 case Perks.Miner:
                     if (!HasPerk(Perks.Outis)) {
                         bgColor = Color.red;
@@ -153,19 +167,19 @@ namespace LL_SV_PerkUnlockHelper {
                     }
                     break;
                 case Perks.Techie:
-                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Tech, character);
+                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Tech, character, bgColor);
                     break;
                 case Perks.Ace:
-                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Fighter, character);
+                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Fighter, character, bgColor);
                     break;
                 case Perks.Just_me_and_the_boys:
-                    bgColor = GetPerkColorKnowledge(Knowledge.Type.FleetCommander, character);
+                    bgColor = GetPerkColorKnowledge(Knowledge.Type.FleetCommander, character, bgColor);
                     break;
                 case Perks.Hard_Worker:
-                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Geology, character);
+                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Geology, character, bgColor);
                     break;
                 case Perks.Traveler:
-                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Explorer, character);
+                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Explorer, character, bgColor);
                     break;
                 case Perks.Early_Supporter:
                     bgColor = Color.red;  // Can never get since time based   
@@ -178,7 +192,7 @@ namespace LL_SV_PerkUnlockHelper {
                     }
                     break;
                 case Perks.Contractor:
-                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Construction, character);
+                    bgColor = GetPerkColorKnowledge(Knowledge.Type.Construction, character, bgColor);
                     break;
             }
 
@@ -189,8 +203,8 @@ namespace LL_SV_PerkUnlockHelper {
             return PChar.HasPerk((int)perk);   
         }
 
-        private static Color? GetPerkColorKnowledge(Knowledge.Type knowledge, BaseCharacter character) {
-            Color? bgColor = null;
+        private static Color GetPerkColorKnowledge(Knowledge.Type knowledge, BaseCharacter character, Color defaultColor) {
+            Color bgColor = defaultColor;
             if (Knowledge.GetValue(knowledge, character) == 25 && Knowledge.HasAnyKnowledgeIn(25, knowledge, character)) {
                 bgColor = Color.red;
             }
@@ -256,10 +270,16 @@ namespace LL_SV_PerkUnlockHelper {
         [HarmonyPatch(typeof(Perk), "GetHowToUnlock")]
         [HarmonyPostfix]
         private static void PGetHowToUnlock_Post(Perk __instance, ref string __result) {
-            if (__instance.locked && __instance.showLevel >= 2) {
+            if (!__instance.locked) {
+                string unlockTxt = __instance.UnlockText;
+                if (!unlockTxt.IsNullOrWhiteSpace()) {
+                    __result += "\n\n" + "<size=12>To Unlock:</size>\n" + ColorSys.infoText2 + unlockTxt + "</color>";
+                }
+            } 
+            if (__instance.showLevel >= 2) {
                 string unlockProgress = GetUnlockProgress(__instance);
                 if (!unlockProgress.IsNullOrWhiteSpace()) {
-                    __result = __result +"\n\n"+ ColorSys.infoText3 + GetUnlockProgress(__instance)  +  "</color>";
+                    __result += "\n\n"+ ColorSys.infoText3 + GetUnlockProgress(__instance)  +  "</color>";
                 }
             }
         }
@@ -269,6 +289,27 @@ namespace LL_SV_PerkUnlockHelper {
             PlayerControl pc = PlayerControl.inst;
             BaseCharacter character = GameData.data.character;
             switch ((Perks)perk.id) {
+                case Perks.Outis:
+                    if (!HasPerk(Perks.Outis)) {
+                        result = "Can not be re-aquired.";
+                    }
+                    break;
+                case Perks.Miner:
+                    if (!HasPerk(Perks.Outis)) {
+                        result = "Requires being Outis.";
+                    }
+                    break;
+                case Perks.Trader:
+                    if (!HasPerk(Perks.Miner)) {
+                        result = "Requires being Miner.";
+                    }
+                    break;
+                case Perks.Pirate:
+                case Perks.Indoctrinated:
+                    if (!HasPerk(Perks.Outis) && !HasPerk(Perks.Miner) && !HasPerk(Perks.Trader)) {
+                        result = "Requires being Outis, Miner or Trader.";
+                    }
+                    break;
                 case Perks.Techie:
                     result = GetKnowledgeUnlockProgress(Knowledge.Type.Tech, character);
                     break;
@@ -300,7 +341,7 @@ namespace LL_SV_PerkUnlockHelper {
                     result = GameData.data.GetDeedCount("DefeatedBossWithYachtOrShuttle") + "/5";
                     if (pc.GetSpaceShip.shipClass > (int)ShipClassLevel.Yacht) {
                         result += "\n" + ColorSys.infoNeg + "CHANGE SHIP!</color> ";
-                        result += "\nEither Shuttle or Yacht required.";
+                        result += "Either Shuttle or Yacht required.";
                     }
                     break;
                 case Perks.Sloppy:
@@ -351,7 +392,7 @@ namespace LL_SV_PerkUnlockHelper {
 
         private static string GetKnowledgeUnlockProgress(Knowledge.Type type, BaseCharacter character) {
             int val = Knowledge.GetValue(type, character);
-            int max = Knowledge.GetMax(Knowledge.Type.Construction, character);
+            int max = Knowledge.GetMax(type, character);
             string result = val + "/25";
             if (max > val) {
                 result += "\n" + ColorSys.infoNeg + "Current Highest: " + max + "</color>";
