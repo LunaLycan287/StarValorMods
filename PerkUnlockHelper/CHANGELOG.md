@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [1.3.0] - 2025-07-21
+
+### Added 
+
+- Setting `SortPerkList` option to sort the Perk list. Yellow / with issues / almost not acquirable, then normal and Red / unacquirable at the end.
+- Added Color / UnlockProgress for `White Collar` and `Rebel`
+
+### Fixed
+
+- Panel now closes with the same key it was opened too.
+
 ## [1.2.0] - 2025-07-18
 
 ### Added
@@ -36,6 +47,7 @@ and this project adheres to [Semantic Versioning].
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
 <!-- Versions -->
+[1.3.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/PerkUnlockHelper_v1.3.0
 [1.2.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/PerkUnlockHelper_v1.2.0
 [1.1.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/PerkUnlockHelper_v1.1.0
 [1.0.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/PerkUnlockHelper_v1.0.0
