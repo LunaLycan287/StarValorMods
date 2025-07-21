@@ -19,17 +19,18 @@ namespace LL_SV_PerkUnlockHelper {
     public class PerkUnlockHelper : BaseUnityPlugin {
         private const string PluginGuid = "lunalycan287.starvalormods.perkunlockhelper";
         private const string PluginName = "Perk Unlock Helper";
-        private const string PluginVersion = "1.2.0";
+        private const string PluginVersion = "1.3.0";
 
         private static readonly ManualLogSource LOGSource = new ManualLogSource("(LL) " + PluginName.Replace(" ",""));
 
+        private const int PanelMode = 271828; // Because everything is better with E :3
         private static GameObject _unlockPerksPanel;
-        private static bool _test;
 
         private static ConfigEntry<string> _keybind;
         private static ConfigEntry<bool> _showImages;
         private static ConfigEntry<bool> _showHiddenUnlockConditions;
         private static ConfigEntry<bool> _showPreviouslyUnlocked;
+        private static ConfigEntry<bool> _sortPerkList;
         
         public void Awake() {
             Harmony.CreateAndPatchAll(typeof(PerkUnlockHelper));
@@ -44,15 +45,25 @@ namespace LL_SV_PerkUnlockHelper {
             _showImages = Config.Bind<bool>("General Settings", "ShowImages", true, "If the image of the Perk should be shown instead of the placeholder.");
             _showHiddenUnlockConditions = Config.Bind<bool>("General Settings", "ShowHiddenUnlockConditions", false, "If the hidden unlock conditions should be shown.");
             _showPreviouslyUnlocked = Config.Bind<bool>("General Settings", "ShowPreviouslyUnlocked", true, "Show perks that have been perviously unlocked, but not yet acquired this run.");
+            _sortPerkList = Config.Bind<bool>("General Settings", "SortPerkList", true, "If perk list should be sorted. Yellow / issue or almost not acquirable first, then normal and at the end all the red / not acquirable ones.");
         }
 
+        private struct PerkInfo
+        {
+           public Perk Perk { get; set; }
+           public Color Color { get; set; }
+           public string UnlockProgress { get; set; }
+        }
         private static void FillPerksHelperPanel(PerksPanel __instance) {
             LOGSource.LogDebug("FillPerksHelperPanel");
             Transform panel = __instance.transform.Find("Panel");
             Text title = __instance.transform.Find("Title").GetComponent<Text>();
+            Traverse.Create(__instance).Field("showOnly").SetValue(true);
 
+            
+            List<PerkInfo> validPerks = new List<PerkInfo>();
+            
             int totalPerks = PerkDB.totalPerks;
-            int i = 0;
             for (int j = 0; j < totalPerks; j++) {
                 Perk byIndex = PerkDB.GetByIndex(j);
                
@@ -67,8 +78,35 @@ namespace LL_SV_PerkUnlockHelper {
                     continue;
                 }
                 
-                if (_showHiddenUnlockConditions.Value && byIndex.showLevel < 2) {
-                    byIndex.showLevel = 2;
+                validPerks.Add(GetPerkInfo(byIndex));
+            }
+
+            if (_sortPerkList.Value) {
+                validPerks.Sort((x, y) => {
+                    int ret = x.Perk.id < y.Perk.id ? -1 : 1;
+                    if (x.Color == y.Color) return ret;
+
+                    if (x.Color == Color.red) {
+                        ret = 1;
+                    }
+                    else if (y.Color == Color.red) {
+                        ret = -1;
+                    }
+                    else if (x.Color == Color.yellow) {
+                        ret = -1;
+                    }
+                    else if (y.Color == Color.yellow) {
+                        ret = 1;
+                    }
+                    return ret;
+                });
+            }
+
+            int i = 0;
+            foreach (PerkInfo perkInfo in validPerks) {
+                
+                if (_showHiddenUnlockConditions.Value && perkInfo.Perk.showLevel < 2) {
+                    perkInfo.Perk.showLevel = 2;
                 }
                 
                 if (i >= panel.childCount) {
@@ -76,15 +114,15 @@ namespace LL_SV_PerkUnlockHelper {
                 }
 
                 PerkControl perkControl = panel.GetChild(i).GetComponent<PerkControl>();
-                perkControl.Setup(byIndex, __instance, null, false, null);
+                perkControl.Setup(perkInfo.Perk, __instance, null, false, null);
                 
-                perkControl.bgColor = GetPerkColor(byIndex);
+                perkControl.bgColor = perkInfo.Color;
                 perkControl.transform.Find("BG").GetComponent<Image>().color = perkControl.bgColor;
                 
 
-                if (_showImages.Value && byIndex.locked) {
+                if (_showImages.Value && perkInfo.Perk.locked) {
                     Image img = perkControl.transform.Find("Image").GetComponent<Image>();
-                    img.sprite = byIndex.image;
+                    img.sprite = perkInfo.Perk.image;
                     //img.color = new Color32(47,79,79, 255);
                     img.color = new Color32(255, 255, 255, 50);
                 }
@@ -92,6 +130,7 @@ namespace LL_SV_PerkUnlockHelper {
                 panel.GetChild(i).gameObject.SetActive(true);
                 i++;
             }
+            
             //__instance.AdjustPanelSize(i);
             while (i < panel.childCount) {
                 panel.GetChild(i).gameObject.SetActive(false);
@@ -105,42 +144,56 @@ namespace LL_SV_PerkUnlockHelper {
             return QuestDB.IsQuestCompleted(QuestDB.GetQuestRef((int)quest), pc.transform);
         }
 
-        private static Color GetPerkColor(Perk perk) {
+        private static PerkInfo GetPerkInfo(Perk perk) {
+            string unlockProgress = "";
             Color bgColor = Color.gray;
             
             PlayerControl pc = PlayerControl.inst;
             BaseCharacter character = GameData.data.character;
             switch ((Perks)perk.id) {
                 case Perks.Outis: 
-                    if (!HasPerk(Perks.Outis)) { // You can not reaquire the perk (by normal means).
+                    if (!HasPerk(Perks.Outis)) { // You can not re-acquire the perk (by normal means).
                         bgColor = Color.red;
+                        unlockProgress = "Can not be re-aquired.";
                     }
                     break;
                 case Perks.Miner:
                     if (!HasPerk(Perks.Outis)) {
                         bgColor = Color.red;
+                        unlockProgress = "Requires being Outis.";
                     }
                     break;
                 case Perks.Trader:
                     if (!HasPerk(Perks.Miner)) {
                         bgColor = Color.red;
+                        unlockProgress = "Requires being Miner.";
                     }
                     break;
-                case Perks.Scoundrel:
+                case Perks.White_Collar:
+                    if (!HasPerk(Perks.Trader) && !HasPerk(Perks.Miner)) {
+                        bgColor = Color.red;
+                        unlockProgress = "Requires being Miner or Trader";
+                    }
+                    break;
                 case Perks.Lone_Wolf:
+                case Perks.Scoundrel:
                     if (IsQuestCompleted(Quests.Old_friends_new_enemies_160, pc)) {
                         bgColor = Color.red;
+                        unlockProgress = "Quest already done, but other choice was used";
                     }
                     break;
                 case Perks.Pirate:
+                case Perks.Rebel:
                 case Perks.Indoctrinated:
                     if (!HasPerk(Perks.Outis) && !HasPerk(Perks.Miner) && !HasPerk(Perks.Trader)) {
                         bgColor = Color.red;
+                        unlockProgress = "Requires being Outis, Miner or Trader.";
                     }
                     break;
                 case Perks.Battle_Rush:
                     if (PChar.Char.level >= 10) {
                         bgColor = Color.red;
+                        unlockProgress = "Player level too high.";
                     } else if (PChar.Char.level >= 8) {
                         bgColor = Color.yellow;
                     }
@@ -148,55 +201,115 @@ namespace LL_SV_PerkUnlockHelper {
                 case Perks.Combat_Genius:
                     if (pc.mercenaries.Count > 0) {
                         bgColor = Color.yellow;
+                        unlockProgress = "Not allowed to have assistance. Dismiss them first.";
                     }
                     break;
-                case Perks.Guardian_Angel:
-                    if (PChar.HasPerk(5)) {
-                        bgColor = Color.red;
-                    }
+                case Perks.Acquired_Wisdom:
+                    unlockProgress = character.level + "/50";
                     break;
-                case Perks.Dogfighter:
-                    if (pc.GetSpaceShip.shipClass > (int)ShipClassLevel.Corvette) {
-                        bgColor = Color.yellow;
-                    }
+                case Perks.O_C_D_:
+                    unlockProgress = GameData.data.GetDeedCount("FullyExploredSector") + "/10";
+                    break;
+                case Perks.The_Perfect_Predator:
+                    unlockProgress = GameData.data.GetDeedCount("AmbushAttack") + "/5";
                     break;
                 case Perks.Battleship_Raid:
-                case Perks.Hoarder:
+                    unlockProgress = GameData.data.GetDeedCount("DefeatedBossWithYachtOrShuttle") + "/5";
                     if (pc.GetSpaceShip.shipClass > (int)ShipClassLevel.Yacht) {
                         bgColor = Color.yellow;
+                        unlockProgress += "\n" + ColorSys.infoNeg + "CHANGE SHIP!</color> ";
+                        unlockProgress += "Either Shuttle or Yacht required.";
+                    }
+                    break;
+                case Perks.Sloppy:
+                    unlockProgress = GameData.data.GetDeedCount("Sloppy") + "/6";
+                    break;
+                case Perks.Aggressive:
+                    unlockProgress = GameData.data.GetDeedCount("DestroyedIndSyndPMCShip") + "/3";
+                    break;
+                case Perks.Marauder:
+                    unlockProgress = GameData.data.GetDeedCount("DestroyedIndSyndPMCShip") + "/20";
+                    break;
+                case Perks.Temperate:
+                    unlockProgress = GameData.data.GetDeedCount("AvoidedIndSyndPMCShip") + "/10";
+                    break;
+                case Perks.Guardian_Angel:
+                    unlockProgress = GameData.data.GetDeedCount("SavedIndSyndPMCShip") + "/10";
+                    if (HasPerk(Perks.Pirate)) {
+                        bgColor = Color.red;
+                        unlockProgress += "\n" + ColorSys.infoNeg + "Get rid of Pirate Perk!</color>";
+                    }
+                    break;
+                case Perks.Anaximander:
+                    unlockProgress = GameData.data.GetDeedCount("ExploredNewSector") + "/100";
+                    break;
+                case Perks.Dogfighter:
+                    unlockProgress = GameData.data.GetDeedCount("DogfightWin") + "/100";
+                    if (pc.GetSpaceShip.shipClass > (int)ShipClassLevel.Corvette) {
+                        bgColor = Color.yellow;
+                        unlockProgress += "\n" + ColorSys.infoNeg + "CHANGE SHIP!</color> ";
+                        unlockProgress += "Either Shuttle, Yacht or Corvette required.";
+                    }
+                    break;
+                case Perks.Space_Janitor:
+                    unlockProgress = GameData.data.GetDeedCount("ClearedAsteroidField") + "/10";
+                    break;
+                case Perks.The_Real_Space_Janitor:
+                    unlockProgress = GameData.data.GetDeedCount("DestroyedJunk") + "/200";
+                    break;
+                case Perks.Hoarder:                     
+                    int num = pc.GetCargoSystem.cargo.Count(t => t.stockStationID == -1);
+                    unlockProgress = num + "/40";
+                    if (pc.GetSpaceShip.shipClass > (int)ShipClassLevel.Yacht) {
+                        bgColor = Color.yellow;
+                        unlockProgress += "\n" + ColorSys.infoNeg + "CHANGE SHIP!</color> ";
+                        unlockProgress += "Either Shuttle or Yacht required.";
                     }
                     break;
                 case Perks.Techie:
                     bgColor = GetPerkColorKnowledge(Knowledge.Type.Tech, character, bgColor);
+                    unlockProgress = GetKnowledgeUnlockProgress(Knowledge.Type.Tech, character);
                     break;
                 case Perks.Ace:
                     bgColor = GetPerkColorKnowledge(Knowledge.Type.Fighter, character, bgColor);
+                    unlockProgress = GetKnowledgeUnlockProgress(Knowledge.Type.Fighter, character);
                     break;
                 case Perks.Just_me_and_the_boys:
                     bgColor = GetPerkColorKnowledge(Knowledge.Type.FleetCommander, character, bgColor);
+                    unlockProgress = GetKnowledgeUnlockProgress(Knowledge.Type.FleetCommander, character);
                     break;
                 case Perks.Hard_Worker:
                     bgColor = GetPerkColorKnowledge(Knowledge.Type.Geology, character, bgColor);
+                    unlockProgress = GetKnowledgeUnlockProgress(Knowledge.Type.Geology, character);
                     break;
                 case Perks.Traveler:
                     bgColor = GetPerkColorKnowledge(Knowledge.Type.Explorer, character, bgColor);
+                    unlockProgress = GetKnowledgeUnlockProgress(Knowledge.Type.Explorer, character);
                     break;
                 case Perks.Early_Supporter:
-                    bgColor = Color.red;  // Can never get since time based   
+                    bgColor = Color.red;  // Can never get since time based
+                    unlockProgress = ColorSys.infoNeg + "Can never be acquired</color> ";
                     break;
                 case Perks.Self_Reliant:
                     if (PChar.Char.level >= 10 || GameData.HasDeed("BoughtEquipmentOrShip") || PChar.HasAnyRepOverValue(999)) {
                         bgColor = Color.red;
+                        unlockProgress = ColorSys.infoNeg + "Player level too high, bought equipment or has too high reputation.</color>";
                     } else if (PChar.Char.level >= 8 || PChar.HasAnyRepOverValue(888)) {
                         bgColor = Color.yellow;
+                        unlockProgress = "Level or reputation getting close to too high.";
                     }
                     break;
                 case Perks.Contractor:
                     bgColor = GetPerkColorKnowledge(Knowledge.Type.Construction, character, bgColor);
+                    unlockProgress = GetKnowledgeUnlockProgress(Knowledge.Type.Construction, character);
                     break;
             }
 
-            return bgColor;
+            return new PerkInfo() {
+                Perk = perk,
+                Color = bgColor,
+                UnlockProgress = unlockProgress
+            };
         }
         
         private static bool HasPerk(Perks perk) {
@@ -205,59 +318,59 @@ namespace LL_SV_PerkUnlockHelper {
 
         private static Color GetPerkColorKnowledge(Knowledge.Type knowledge, BaseCharacter character, Color defaultColor) {
             Color bgColor = defaultColor;
-            if (Knowledge.GetValue(knowledge, character) == 25 && Knowledge.HasAnyKnowledgeIn(25, knowledge, character)) {
+            if (Knowledge.HasAnyKnowledgeIn(25, knowledge, character)) {
                 bgColor = Color.red;
             }
-            else if (Knowledge.HasAnyKnowledgeIn(23, knowledge, character)) {
+            else if (Knowledge.HasAnyKnowledgeIn(22, knowledge, character)) {
                 bgColor = Color.yellow;
             }
             return bgColor;
         }
-        
-
 
         [HarmonyPatch(typeof(PlayerControl), "Update")]
         [HarmonyPostfix]
-        private static void PCUpdate_Post(PlayerControl __instance) {
+        private static void PCUpdate_Post() {
             if (Input.GetKeyDown(_keybind.Value)) {
-                LOGSource.LogDebug("PCUpdate");
                 CharacterScreen charScreen = GameObject.FindGameObjectWithTag("PlayerUI").GetComponent<PlayerUIControl>().transform.parent.Find("Character").GetComponent<CharacterScreen>();
-                if (charScreen != null) {
-                    charScreen.OpenClose(271828);
+                if (charScreen) {
+                    charScreen.OpenClose(PanelMode);
                 }
-            }
-            if (_test == true) {
-                LOGSource.LogDebug("PCUpdate test");
-                _test = false;
             }
         }
         
-        
+        [HarmonyPatch(typeof(CharacterScreen), nameof(CharacterScreen.OpenClose))]
+        [HarmonyPrefix]
+        private static bool CSOpenClose_Pre(CharacterScreen __instance) {
+            if (_unlockPerksPanel && _unlockPerksPanel.activeSelf) {
+                __instance.Close();
+                return false; //skip original
+            }
+            return true;
+        }
+
         [HarmonyPatch(typeof(CharacterScreen), "CloseSubPanels")]
         [HarmonyPostfix]
-        private static void CSCloseSubPanels_Post(CharacterScreen __instance) {
-            if (_unlockPerksPanel != null) {
+        private static void CSCloseSubPanels_Post() {
+            if (_unlockPerksPanel && _unlockPerksPanel.activeSelf) {
                 _unlockPerksPanel.SetActive(false);
             }
         }
-        
         
         [HarmonyPatch(typeof(CharacterScreen), nameof(CharacterScreen.Open))]
         [HarmonyPostfix]
         private static void CSOpen_Post(CharacterScreen __instance, int mode) {
             LOGSource.LogDebug("CSOpen_Post: " + mode);
-            if (mode == 271828) {
+            if (mode == PanelMode) {
                 InstantiatePerksHelperPanel(__instance);
                 _unlockPerksPanel.SetActive(true);
                 FillPerksHelperPanel(_unlockPerksPanel.GetComponent<PerksPanel>());
-                //_unlockPerksPanel.GetComponent<PerksPanel>().ShowCharPerks();
             }
         }
         
         private static void InstantiatePerksHelperPanel(CharacterScreen __instance)
         {
             LOGSource.LogDebug("InstantiatePerksHelperPanel");
-            if (_unlockPerksPanel == null) {
+            if (!_unlockPerksPanel) {
                 _unlockPerksPanel = Instantiate<GameObject>(__instance.perksPanelRef, __instance.transform);
                 _unlockPerksPanel.GetComponent<RectTransform>().anchoredPosition3D = new Vector3(0f, -58.61f, 0f);
                 _unlockPerksPanel.GetComponent<RectTransform>().sizeDelta = new Vector2(1100f, 522f);
@@ -277,117 +390,11 @@ namespace LL_SV_PerkUnlockHelper {
                 }
             } 
             if (__instance.showLevel >= 2) {
-                string unlockProgress = GetUnlockProgress(__instance);
-                if (!unlockProgress.IsNullOrWhiteSpace()) {
-                    __result += "\n\n"+ ColorSys.infoText3 + GetUnlockProgress(__instance)  +  "</color>";
+                PerkInfo unlockProgress = GetPerkInfo(__instance);
+                if (!unlockProgress.UnlockProgress.IsNullOrWhiteSpace()) {
+                    __result += "\n\n"+ ColorSys.infoText3 + unlockProgress.UnlockProgress  +  "</color>";
                 }
             }
-        }
-
-        private static string GetUnlockProgress(Perk perk) {
-            string result = "";
-            PlayerControl pc = PlayerControl.inst;
-            BaseCharacter character = GameData.data.character;
-            switch ((Perks)perk.id) {
-                case Perks.Outis:
-                    if (!HasPerk(Perks.Outis)) {
-                        result = "Can not be re-aquired.";
-                    }
-                    break;
-                case Perks.Miner:
-                    if (!HasPerk(Perks.Outis)) {
-                        result = "Requires being Outis.";
-                    }
-                    break;
-                case Perks.Trader:
-                    if (!HasPerk(Perks.Miner)) {
-                        result = "Requires being Miner.";
-                    }
-                    break;
-                case Perks.Pirate:
-                case Perks.Indoctrinated:
-                    if (!HasPerk(Perks.Outis) && !HasPerk(Perks.Miner) && !HasPerk(Perks.Trader)) {
-                        result = "Requires being Outis, Miner or Trader.";
-                    }
-                    break;
-                case Perks.Techie:
-                    result = GetKnowledgeUnlockProgress(Knowledge.Type.Tech, character);
-                    break;
-                case Perks.Ace:
-                    result = GetKnowledgeUnlockProgress(Knowledge.Type.Fighter, character);
-                    break;
-                case Perks.Just_me_and_the_boys:
-                    result = GetKnowledgeUnlockProgress(Knowledge.Type.FleetCommander, character);
-                    break;
-                case Perks.Hard_Worker:
-                    result = GetKnowledgeUnlockProgress(Knowledge.Type.Geology, character);
-                    break;
-                case Perks.Traveler:
-                    result = GetKnowledgeUnlockProgress(Knowledge.Type.Explorer, character);
-                    break;
-                case Perks.Contractor:
-                    result = GetKnowledgeUnlockProgress(Knowledge.Type.Construction, character);
-                    break;
-                case Perks.Acquired_Wisdom:
-                    result = character.level + "/50";
-                    break;
-                case Perks.O_C_D_:
-                    result = GameData.data.GetDeedCount("FullyExploredSector") + "/10";
-                    break;
-                case Perks.The_Perfect_Predator:
-                    result = GameData.data.GetDeedCount("AmbushAttack") + "/5";
-                    break;
-                case Perks.Battleship_Raid:
-                    result = GameData.data.GetDeedCount("DefeatedBossWithYachtOrShuttle") + "/5";
-                    if (pc.GetSpaceShip.shipClass > (int)ShipClassLevel.Yacht) {
-                        result += "\n" + ColorSys.infoNeg + "CHANGE SHIP!</color> ";
-                        result += "Either Shuttle or Yacht required.";
-                    }
-                    break;
-                case Perks.Sloppy:
-                    result = GameData.data.GetDeedCount("Sloppy") + "/6";
-                    break;
-                case Perks.Aggressive:
-                    result = GameData.data.GetDeedCount("DestroyedIndSyndPMCShip") + "/3";
-                    break;
-                case Perks.Marauder:
-                    result = GameData.data.GetDeedCount("DestroyedIndSyndPMCShip") + "/20";
-                    break;
-                case Perks.Temperate:
-                    result = GameData.data.GetDeedCount("AvoidedIndSyndPMCShip") + "/10";
-                    break;
-                case Perks.Guardian_Angel:
-                    result = GameData.data.GetDeedCount("SavedIndSyndPMCShip") + "/10";
-                    if (HasPerk(Perks.Pirate)) {
-                        result += "\n" + ColorSys.infoNeg + "Get rid of Pirate Perk!</color>";
-                    }
-                    break;
-                case Perks.Anaximander:
-                    result = GameData.data.GetDeedCount("ExploredNewSector") + "/100";
-                    break;
-                case Perks.Dogfighter:
-                    result = GameData.data.GetDeedCount("DogfightWin") + "/100";
-                    if (pc.GetSpaceShip.shipClass > (int)ShipClassLevel.Corvette) {
-                        result += "\n" + ColorSys.infoNeg + "CHANGE SHIP!</color> ";
-                        result += "Either Shuttle, Yacht or Corvette required.";
-                    }
-                    break;
-                case Perks.Space_Janitor:
-                    result = GameData.data.GetDeedCount("ClearedAsteroidField") + "/10";
-                    break;
-                case Perks.The_Real_Space_Janitor:
-                    result = GameData.data.GetDeedCount("DestroyedJunk") + "/200";
-                    break;
-                case Perks.Hoarder:
-                    int num = pc.GetCargoSystem.cargo.Count(t => t.stockStationID == -1);
-                    result = num + "/40";
-                    if (pc.GetSpaceShip.shipClass > (int)ShipClassLevel.Yacht) {
-                        result += "\n" + ColorSys.infoNeg + "CHANGE SHIP!</color> ";
-                        result += "Either Shuttle or Yacht required.";
-                    }
-                    break;
-            }
-            return result;
         }
 
         private static string GetKnowledgeUnlockProgress(Knowledge.Type type, BaseCharacter character) {
@@ -406,23 +413,12 @@ namespace LL_SV_PerkUnlockHelper {
             if (!_showImages.Value) {
                 return;
             }
-            LOGSource.LogDebug("Activating tooltip perk");
             
-            Tooltip tooltip;
-            if (GameObject.FindGameObjectWithTag("MainMenu"))
-            {
-                tooltip = GameObject.FindGameObjectWithTag("MainMenu").transform.Find("Tooltip").GetComponent<Tooltip>();
-                if (tooltip != null) {
-                    LOGSource.LogDebug("Activating tooltip perk: Inner not null");
-                }
-                return;
-            }
-            tooltip = GameObject.FindGameObjectWithTag("MainCanvas").transform.Find("Tooltip").GetComponent<Tooltip>();
+            Tooltip tooltip = GameObject.FindGameObjectWithTag("MainCanvas").transform.Find("Tooltip").GetComponent<Tooltip>();
             tooltip.sprite = __instance.perk.image;
             
             tooltip.ShowItem("                  " + __instance.perk.GetString(false, null), false, false);
             tooltip.ShowExtras(__instance.perk.GetLockState(), __instance.perk.GetPerkTypeString());
-            LOGSource.LogDebug("Activating tooltip perk set image:" + tooltip.sprite.name);
         }
     }
 }
