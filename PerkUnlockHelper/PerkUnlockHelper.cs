@@ -19,7 +19,7 @@ namespace LL_SV_PerkUnlockHelper {
     public class PerkUnlockHelper : BaseUnityPlugin {
         private const string PluginGuid = "lunalycan287.starvalormods.perkunlockhelper";
         private const string PluginName = "Perk Unlock Helper";
-        private const string PluginVersion = "1.3.0";
+        private const string PluginVersion = "1.3.1";
 
         private static readonly ManualLogSource LOGSource = new ManualLogSource("(LL) " + PluginName.Replace(" ",""));
 
@@ -141,7 +141,7 @@ namespace LL_SV_PerkUnlockHelper {
         }
 
         private static bool IsQuestCompleted(Quests quest, PlayerControl pc) {
-            return QuestDB.IsQuestCompleted(QuestDB.GetQuestRef((int)quest), pc.transform);
+            return pc && QuestDB.IsQuestCompleted(QuestDB.GetQuestRef((int)quest), pc.transform);
         }
 
         private static PerkInfo GetPerkInfo(Perk perk) {
@@ -383,16 +383,19 @@ namespace LL_SV_PerkUnlockHelper {
         [HarmonyPatch(typeof(Perk), "GetHowToUnlock")]
         [HarmonyPostfix]
         private static void PGetHowToUnlock_Post(Perk __instance, ref string __result) {
+            if (!GameManager.instance.inGame) return;
+            
             if (!__instance.locked) {
                 string unlockTxt = __instance.UnlockText;
                 if (!unlockTxt.IsNullOrWhiteSpace()) {
                     __result += "\n\n" + "<size=12>To Unlock:</size>\n" + ColorSys.infoText2 + unlockTxt + "</color>";
                 }
-            } 
+            }
+
             if (__instance.showLevel >= 2) {
                 PerkInfo unlockProgress = GetPerkInfo(__instance);
                 if (!unlockProgress.UnlockProgress.IsNullOrWhiteSpace()) {
-                    __result += "\n\n"+ ColorSys.infoText3 + unlockProgress.UnlockProgress  +  "</color>";
+                    __result += "\n\n" + ColorSys.infoText3 + unlockProgress.UnlockProgress + "</color>";
                 }
             }
         }
@@ -413,10 +416,15 @@ namespace LL_SV_PerkUnlockHelper {
             if (!_showImages.Value) {
                 return;
             }
+
+            GameObject mainCanvas = GameObject.FindGameObjectWithTag("MainCanvas");
+            if (!mainCanvas) return;
             
-            Tooltip tooltip = GameObject.FindGameObjectWithTag("MainCanvas").transform.Find("Tooltip").GetComponent<Tooltip>();
+            Tooltip tooltip = mainCanvas.transform.Find("Tooltip").GetComponent<Tooltip>();
+            if (!tooltip) return;
+            
             tooltip.sprite = __instance.perk.image;
-            
+
             tooltip.ShowItem("                  " + __instance.perk.GetString(false, null), false, false);
             tooltip.ShowExtras(__instance.perk.GetLockState(), __instance.perk.GetPerkTypeString());
         }

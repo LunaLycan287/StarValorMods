@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [1.3.1] - 2025-07-23
+
+### Fixed
+
+- Fixed Exceptions (that had no effect) when hovering over Perks during character creation.
+
 ## [1.3.0] - 2025-07-21
 
 ### Added 
