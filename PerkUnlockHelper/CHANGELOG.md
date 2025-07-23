@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning].
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
 <!-- Versions -->
+[1.3.1]: https://github.com/LunaLycan287/StarValorMods/releases/tag/PerkUnlockHelper_v1.3.1
 [1.3.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/PerkUnlockHelper_v1.3.0
 [1.2.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/PerkUnlockHelper_v1.2.0
 [1.1.0]: https://github.com/LunaLycan287/StarValorMods/releases/tag/PerkUnlockHelper_v1.1.0
